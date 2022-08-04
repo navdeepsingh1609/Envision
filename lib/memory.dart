@@ -1,23 +1,17 @@
 import 'dart:math';
-
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
-
 import 'main.dart';
 
-enum MemoryAlgo { First_Fit, Last_Fit, Best_Fit, Worst_Fit, Random_Fit }
+enum MemoryAlgo { First_Fit, Next_Fit, Best_Fit, Worst_Fit }
 
 const int MEMORY_SIZE = 50;
 
-String getMemoryData(DataChoice? valik) {
-  switch (valik) {
+String getMemoryData(DataChoice? choice) {
+  switch (choice) {
     case DataChoice.First:
-      return "1,8;35,4;3,6;4,2;1,4;3,3;1,2;5,1;50,1";
-    case DataChoice.Second:
-      return "1,8;7,4;10,6;25,2;1,4;13,3;6,2;8,1;50,1";
-    case DataChoice.Third:
-      return "1,10;6,6;3,7;2,4;1,6;5,2;1,4;5,2;3,1";
+      return "1,6;21,6;3,6;4,2;1,4;3,2;1,2;4,1;22,3";
     default:
       return "";
   }
@@ -32,14 +26,12 @@ Widget runMemoryAlgo(MemoryAlgo algo, StringBuffer log, List<List<num>> rawProce
   switch (algo) {
     case MemoryAlgo.First_Fit:
       return memoryFit(processes: processes, memory: memory, log: log);
-    case MemoryAlgo.Last_Fit:
-      return memoryFit(processes: processes, memory: memory, log: log, reverseChunkPriority: true);
+    case MemoryAlgo.Next_Fit:
+      return memoryFit(processes: processes, memory: memory, log: log ,reverseChunkPriority: true);
     case MemoryAlgo.Best_Fit:
       return memoryFit(processes: processes, memory: memory, log: log, sortByChunkSize: true);
     case MemoryAlgo.Worst_Fit:
       return memoryFit(processes: processes, memory: memory, log: log, reverseChunkPriority: true, sortByChunkSize: true);
-    case MemoryAlgo.Random_Fit:
-      return memoryFit(processes: processes, memory: memory, log: log, random: true);
   }
 }
 
@@ -56,7 +48,6 @@ class MemoryProcess {
     this.name = name;
     size = request[0];
     time = request[1];
-    //TODO: look at making this consistent
     color = Color((Random(name.hashCode).nextDouble() * 0xFFFFFF).toInt()).withOpacity(1.0);
   }
 
@@ -127,8 +118,8 @@ class Memory {
   }
 }
 
-Widget memoryFit({required List<MemoryProcess> processes, required Memory memory, required StringBuffer log, bool reverseChunkPriority = false, bool sortByChunkSize = false, bool random = false}) {
-  log.write("Starting ${random ? "random-fit" : sortByChunkSize ? reverseChunkPriority ? "worst-fit" : "best-fit" : reverseChunkPriority ? "last-fit" : "first-fit"} with $processes");
+Widget memoryFit({required List<MemoryProcess> processes, required Memory memory, required StringBuffer log, bool reverseChunkPriority = false, bool sortByChunkSize = false}) {
+  log.write("Starting ${sortByChunkSize ? reverseChunkPriority ? "worst-fit" : "best-fit" : reverseChunkPriority ? "last-fit" : "first-fit"} with $processes");
   List<TableRow> resultList = [];
   for (var process in processes) {
     var chunks = memory.getFreeChunks();
@@ -150,9 +141,6 @@ Widget memoryFit({required List<MemoryProcess> processes, required Memory memory
     log.write("\nTrying to add process $process to free chunks $chunks");
     bool added = false;
     for (var chunk in chunks) {
-      if (random) {
-        chunk = chunks[Random().nextInt(chunks.length)];
-      }
       if (chunk[1] - chunk[0] >= process.size - 1) {
         process.setReg(chunk[0], chunk[0] + process.size - 1);
         log.write("\n   Added process $process to range [${process.regStart}, ${process.regEnd}]");
@@ -166,7 +154,7 @@ Widget memoryFit({required List<MemoryProcess> processes, required Memory memory
     if (!added) {
       log.write("\n!---Could not add process $process---!");
       resultList.add(rowFromMemory(memory, process.toString(), true, true));
-      log.write("\nFailed to complete ${random ? "random-fit" : sortByChunkSize ? reverseChunkPriority ? "worst-fit" : "best-fit" : reverseChunkPriority ? "last-fit" : "first-fit"}");
+      log.write("\nFailed to complete ${sortByChunkSize ? reverseChunkPriority ? "worst-fit" : "best-fit" : reverseChunkPriority ? "last-fit" : "first-fit"}");
       return resultFromList(resultList);
     }
   }
@@ -175,13 +163,12 @@ Widget memoryFit({required List<MemoryProcess> processes, required Memory memory
     memory.tick();
   }
   resultList.add(rowFromMemory(memory, "-", true, false));
-  log.write("\nFinished ${random ? "random-fit" : sortByChunkSize ? reverseChunkPriority ? "worst-fit" : "best-fit" : reverseChunkPriority ? "last-fit" : "first-fit"} successfully");
+  log.write("\nFinished ${sortByChunkSize ? reverseChunkPriority ? "worst-fit" : "best-fit" : reverseChunkPriority ? "last-fit" : "first-fit"} successfully");
   return resultFromList(resultList);
 }
 
 class MemoryResult extends StatelessWidget {
   final List<TableRow> list;
-
   const MemoryResult(this.list);
 
   @override
@@ -191,7 +178,7 @@ class MemoryResult extends StatelessWidget {
         children: list,
         columnWidths: {
           0: FixedColumnWidth(MEMORY_SIZE.toDouble()),
-          1: IntrinsicColumnWidth(),
+          1: const IntrinsicColumnWidth(),
         },
       ),
     );

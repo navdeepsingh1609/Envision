@@ -8,31 +8,27 @@ import 'main.dart';
 
 enum CpuAlgo { First_Come_First_Serve, Shortest_Job_First, Round_Robin}
 
-const int RR_WINDOW = 3;
+int TimeQuantum = 2;
 
-String getCpuData(DataChoice? valik) {
-  switch (valik) {
+String getCpuData(DataChoice? choice) {
+  switch (choice) {
     case DataChoice.First:
-      return "0,5;6,9;6,5;15,10";
-    case DataChoice.Second:
-      return "0,2;0,4;12,4;15,5;21,10";
-    case DataChoice.Third:
-      return "5,6;6,9;11,3;12,7";
+      return "0,2;3,8;4,5;6,9;8,3";
     default:
       return "";
   }
 }
 
-Widget runCpuAlgo(CpuAlgo algo, StringBuffer log, List<List<num>> processes) {
+Widget runCpuAlgo(CpuAlgo algo, StringBuffer log, List<List<num>> processes,int n) {
+  TimeQuantum=n;
+  //print("=============RECIEVED=======$TimeQuantum");
   switch (algo) {
     case CpuAlgo.First_Come_First_Serve:
       return FCFS(processes, log);
     case CpuAlgo.Shortest_Job_First:
       return SJF(processes, log);
     case CpuAlgo.Round_Robin:
-      return RR(processes, log, RR_WINDOW);
-    // case CpuAlgo.TL_FCFS:
-    //   return TL_FCFS(processes, log);
+      return RR(processes, log, TimeQuantum);
   }
 }
 
@@ -49,7 +45,7 @@ Widget FCFS(List<List<num>> processes, StringBuffer log) {
       resList.add(new CpuProcessBar(totalTime as int, totalTime + time, "", Colors.grey));
       totalTime += time;
     }
-    //TODO: Add generated colors here as well
+
     var color = Colors.green;
     if (process[0] < totalTime) {
       log.write("\nP$count is waiting for ${totalTime - process[0]}");
@@ -190,95 +186,9 @@ Widget RR(List<List<num>> processes, StringBuffer log, int n) {
   return CpuResult(totalWait / processes.length, resList);
 }
 
-Widget TL_FCFS(List<List<num>> processes, StringBuffer log) {
-  log.write("Starting Two-Layer First Come First Serve with $processes");
-  num totalTime = 0;
-  num count = 0;
-  num totalWait = 0;
-  List<CpuProcessBar> resList = [];
-  List<Color> colors = List.generate(processes.length, (index) => Color((Random(index).nextDouble() * 0xFFFFFF).toInt()).withOpacity(1.0));
-  var delayProcess = [0, double.infinity, -1];
-
-  List<num> currentProcess = delayProcess;
-  num currentWork = 0;
-  Queue<List<num>> hQueue = new Queue();
-  Queue<List<num>> lQueue = new Queue();
-  bool processingLow = false;
-  while (true) {
-    if (currentProcess[1] == 0) {
-      resList.add(CpuProcessBar(totalTime - currentWork as int, totalTime as int, currentProcess[2] != -1 ? "P${currentProcess[2] + 1}" : "", currentProcess[2] != -1 ? colors[currentProcess[2] as int] : Colors.grey));
-      log.write("\nFinished P${currentProcess[2] + 1}, saving work ($currentWork) in bar");
-      currentWork = 0;
-      if (hQueue.isNotEmpty) {
-        processingLow = false;
-        currentProcess = hQueue.removeLast();
-        log.write("\n   Starting P${currentProcess[2] + 1} from high-priority queue");
-      } else if (lQueue.isNotEmpty) {
-        processingLow = true;
-        currentProcess = lQueue.removeLast();
-        log.write("\n   Starting P${currentProcess[2] + 1} from low-priority queue");
-      } else {
-        processingLow = true;
-        log.write("\n   Starting delay task");
-        currentProcess = delayProcess;
-      }
-    }
-
-    if (count <= processes.length - 1) {
-      while (processes[count as int][0] <= totalTime) {
-        log.write("\nQueueing process P${count + 1} ${processes[count]} at time $totalTime");
-        processes[count].add(count);
-        if ((processes[count][1] <= 6 && processingLow) || currentProcess[2] == -1) {
-          if (currentWork != 0) {
-            resList
-                .add(CpuProcessBar(totalTime - currentWork as int, totalTime as int, currentProcess[2] != -1 ? "P${currentProcess[2] + 1}" : "", currentProcess[2] != -1 ? colors[currentProcess[2] as int] : Colors.grey));
-          }
-          log.write("\n   New process is higher priority than P${currentProcess[2] + 1}, saving work ($currentWork) in bar and starting P${count + 1}");
-          currentWork = 0;
-
-          if (currentProcess[2] != -1) {
-            if (processingLow) {
-              log.write("\n   Adding P${count + 1} back to low-priority queue");
-              lQueue.add(currentProcess);
-            } else {
-              log.write("\n   Adding P${count + 1} back to high-priority queue");
-              hQueue.add(currentProcess);
-            }
-          }
-
-          currentProcess = processes[count];
-        } else if (processes[count][1] <= 6) {
-          log.write("\n   Adding P${count + 1} to high-priority queue");
-          hQueue.add(processes[count]);
-        } else {
-          log.write("\n   Adding P${count + 1} to low-priority queue");
-          lQueue.add(processes[count]);
-        }
-        count++;
-        if (count > processes.length - 1) break;
-      }
-    }
-
-    if (currentProcess[2] == -1 && count >= processes.length) {
-      log.write("\nFinished TL_FCFS");
-      break;
-    }
-
-    currentProcess[1]--;
-    currentWork++;
-    totalTime++;
-    hQueue.forEach((element) => totalWait++);
-    lQueue.forEach((element) => totalWait++);
-    log.write("\n#######P${currentProcess[2] + 1} $currentProcess, currentWork: $currentWork, time: $totalTime, totalWait: $totalWait, count $count, hQueue: $hQueue, lQueue: $lQueue");
-  }
-
-  return CpuResult(totalWait / processes.length, resList);
-}
-
 class CpuResult extends StatelessWidget {
   final double avgWait;
   final List<CpuProcessBar> list;
-
   const CpuResult(this.avgWait, this.list);
 
   @override
@@ -289,10 +199,10 @@ class CpuResult extends StatelessWidget {
         Center(
           child: Text(
             "Average wait: ${avgWait.toStringAsFixed(2)}",
-            style: TextStyle(fontFamily: 'Nutino',),
+            style: const TextStyle(fontFamily: 'Nutino',),
           ),
         ),
-        SizedBox(
+        const SizedBox(
           height: 20,
         ),
         SizedBox(
@@ -316,13 +226,14 @@ class CpuProcessBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+
     return Flexible(
       flex: end - start,
       child: Container(
         decoration: BoxDecoration(
           color: color,
           border: Border(
-            right: BorderSide(),
+            right: const BorderSide(),
             left: BorderSide(color: Colors.white.withAlpha(start == 0 ? 255 : 0)),
           ),
         ),
@@ -334,7 +245,6 @@ class CpuProcessBar extends StatelessWidget {
                 child: Text(
                   text,
                   style: TextStyle(
-                    // color: color.computeLuminance() > 0.5 ? Colors.white : Colors.white,
                     color: Colors.white,
                     fontFamily: 'Nutino',
                     fontWeight: FontWeight.bold,

@@ -1,25 +1,34 @@
-import 'dart:math';
-import 'package:flutter/cupertino.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:envision/cpu.dart';
 import 'package:envision/memory.dart';
 import 'package:envision/storage.dart';
-import 'package:flutter/src/widgets/list_wheel_scroll_view.dart';
 import 'package:toggle_switch/toggle_switch.dart';
-import 'bottombar.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'dart:ui';
+import 'info.dart';
+import 'ElevatedCard2.dart';
 
-void main() => runApp(AlgoApp());
+void main() => runApp(MaterialApp(
+  debugShowCheckedModeBanner: false,
+    title: 'Envision',
+    theme: ThemeData(
+      primaryColor: Colors.white,
+      primaryColorDark: Colors.white,
+      highlightColor: Colors.white,
+      visualDensity: VisualDensity.adaptivePlatformDensity,
+      bottomSheetTheme: BottomSheetThemeData(
+        backgroundColor: Colors.black.withAlpha(0),
+      ),
+    ),
+    home: AlgoApp()));
 
-// void main() => runApp(MyStatefulWidget());
 enum DataChoice { First, Second, Third, Own }
 
 enum Component { CPU, Memory, Storage }
 
 class AlgoApp extends StatefulWidget {
+  const AlgoApp({Key? key}) : super(key: key);
+
   @override
   _AlgoAppState createState() => _AlgoAppState();
 }
@@ -35,24 +44,50 @@ class _AlgoAppState extends State<AlgoApp> {
   int curr_idx = 0;
   Widget? resWidget;
   FocusNode focus = FocusNode(); //Keyboard EVENTS MANAGEMENT
-
+  int timeQuantum = 2;
+  bool isRR = false;
   int _selectedIndex = 0;
 
   void _onItemTapped(int index) {
     setState(() {
       _selectedIndex = index;
-      if (index == 1) {
+      if (index == 0) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => info()),
+        );
+      } else if (index == 1) {
         component = Component.CPU;
       } else if (index == 2) {
         component = Component.Memory;
       } else if (index == 3) {
         component = Component.Storage;
       }
-      resWidget = Padding(
+      resWidget = const Padding(
         padding: EdgeInsets.all(50.0),
       );
       setSelectedAlgoList();
     });
+  }
+
+  String InputFormat() {
+    if (component == Component.CPU) {
+      return '''      
+<Process1, Length1; Process1, Length1; >
+0,2;3,8;4,5;6,9;8,3''';
+    } else if (component == Component.Memory) {
+      return '''
+ <Memory1, Length1; Memory2, Length2; ... >
+1,6; 21,6; 3,6; 4,2; 1,4; 3,2; 1,2; 4,1; 22,3''';
+    } else if (component == Component.Storage) {
+      return '''
+A,1; B,2; A,-; C,3; B,+2; D,5; E,6; B,-; F,3
+<Process, Size/Operation;>
++ implies Create
+- implies Delete''';
+    } else {
+      return "";
+    }
   }
 
   @override
@@ -74,273 +109,327 @@ class _AlgoAppState extends State<AlgoApp> {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-        title: 'Resource Scheduling',
-        theme: ThemeData(
-          primaryColor: Colors.white,
-          primaryColorDark: Colors.white,
-          highlightColor: Colors.white,
-          visualDensity: VisualDensity.adaptivePlatformDensity,
-          bottomSheetTheme: BottomSheetThemeData(
-            backgroundColor: Colors.black.withAlpha(0),
-          ),
-        ),
-        home: Container(
-          decoration: BoxDecoration(
-              gradient: LinearGradient(
-                  begin: Alignment.topRight,
-                  end: Alignment.bottomLeft,
-                  colors: [Color(0xff654ea3 ), Color(0xffeaafc8)])
-          ),
-          child: Scaffold(
-            backgroundColor: Colors.transparent,
-            appBar: AppBar(
-              backgroundColor: Colors.black54.withOpacity(0.7),
-              elevation: 2,
-              title: Center(
-                  child:
-                      Text('${component.toString().split(".")[1]} Scheduling',style: TextStyle(fontFamily: 'Nutino',),)),
-            ),
-            body: LayoutBuilder(
-              builder: (BuildContext context, BoxConstraints constraints) =>
-                  SingleChildScrollView(
-                scrollDirection: Axis.vertical,
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.all(8.0),
-                      child: Container(
-                        width: 250,
-                        height: 40,
-                        decoration: BoxDecoration(
-                          // border: Border.all(
-                          //   color: Colors.black,
-                          //   width: 3,
-                          // ),
-                          borderRadius: BorderRadius.circular(20),
-                          color: Colors.black54.withOpacity(0.5),
-                        ),
-                        child: Center(
-                            child: Text("Choose Algorithm:",
-                                style: TextStyle(
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.bold, color: Colors.white,
-                                  fontFamily: 'Nutino',))),
-                      ),
-                    ),
-                    LayoutBuilder(
-                      builder: (context, constraints) =>
-                          buildAlgoToggle(constraints),
-                    ),
-                    IntrinsicHeight(
-                      child: Column(
-                        // crossAxisAlignment: CrossAxisAlignment.stretch,
-                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                        children: [
-                          const SizedBox(
-                            width: 100.0,
-                            height: 20.0,
-                          ),
-                          Column(children: [
-                            Container(
-                              width: 250,
-                              height: 40,
-                              decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(20),
-                                  color: Colors.black54.withOpacity(0.5),
-                              ),
-                              child: Center(
-                                  child: Text("Create Your Process List:",
-                                      style: TextStyle(
-                                          fontSize: 15,
-                                        fontWeight: FontWeight.bold,
-                                        color: Colors.white,
-                                        fontFamily: 'Nutino',
-
-                                      ))),
-                            ),
-                            generateDataInputList()
-                          ]),
-                          Flexible(
-                            child: Padding(
-                              padding: EdgeInsets.fromLTRB(15, 0, 15.0, 0),
-                              child: Column(
-                                children: [
-                                  const SizedBox(
-                                    width: 100.0,
-                                    height: 20.0,
-                                  ),
-                                  Padding(
-                                      padding: EdgeInsets.all(8.0),
-                                      child: Container(
-                                        width: 250,
-                                        height: 40,
-                                        decoration: BoxDecoration(
-                                          // border: Border.all(
-                                          //   color: Colors.black,
-                                          //   width: 3,
-                                          // ),
-                                          borderRadius:
-                                              BorderRadius.circular(20),
-                                          color: Colors.black54.withOpacity(0.5),
-                                        ),
-
-                                        child: Center(
-                                            child: Text("Process Table:",
-                                                style: TextStyle(
-                                                    fontSize: 15,
-                                                    fontWeight:
-                                                        FontWeight.bold,color: Colors.white,
-                                                  fontFamily: 'Nutino',))),
-                                      )),
-                                  const SizedBox(
-                                    width: 100.0,
-                                    height: 10.0,
-                                  ),
-                                  Flexible(
-                                    child: Builder(
-                                      builder: (context) {
-                                        List processes;
-                                        if (choiceText.isEmpty &&
-                                            dataChoice == DataChoice.Own) {
-                                          return const TableErrorContainer(
-                                            text: "Enter List For Output",
-                                          );
-                                        }
-                                        try {
-                                          if (component == Component.Storage) {
-                                            processes =
-                                                parseStorageOperations();
-                                          } else {
-                                            processes =
-                                                parseComputationProcesses();
-                                            processes[processes.length - 1][1];
-                                          }
-                                        } catch (e) {
-                                          return const TableErrorContainer(
-                                            text: "Invalid Input",
-                                          );
-                                        }
-                                        switch (component) {
-                                          case Component.CPU:
-                                            return ProcessTable.fromProcessList(
-                                                processes as List<List<num>>,
-                                                "Arrival time",
-                                                "Length",
-                                                (int index) => "P${index + 1}");
-                                          case Component.Memory:
-                                            return ProcessTable.fromProcessList(
-                                                processes as List<List<num>>,
-                                                "Memory",
-                                                "Length",
-                                                (int index) =>
-                                                    MemoryProcess.generateName(
-                                                        index));
-                                          case Component.Storage:
-                                            return ProcessTable.fromStorageList(
-                                                processes
-                                                    as List<StorageOperation>);
-                                          default:
-                                            return TableErrorContainer(
-                                              text: "No Component Selected",
-                                            );
-                                        }
-                                      },
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(
-                      height: 20,
-                    ),
-
-                    const SizedBox(
-                      height: 10,
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.all(8.0),
-                      child: Container(
-                        width: 250,
-                        height: 40,
-                        decoration: BoxDecoration(
-                         borderRadius: BorderRadius.circular(20),
-                          color: Colors.black54.withOpacity(0.5)
-                        ),
-                        child: Center(
-                            child: Text("Output:",
-                                style: TextStyle(
-                                    fontSize: 15,
-                                    fontWeight: FontWeight.bold,color: Colors.white,
-                                  fontFamily: 'Nutino',))),
-                      ),
-                    ),
-                    SingleChildScrollView(
-                        scrollDirection: Axis.horizontal, child: IntrinsicHeight(child: resWidget!)),
-                    const SizedBox(
-                      height: 10,
-                    ),
-                  ],
-                ),
+    bool isFrag = component == Component.Storage;
+    return Container(
+        decoration: const BoxDecoration(
+            gradient: LinearGradient(
+                begin: Alignment.topRight,
+                end: Alignment.bottomLeft,
+                colors: [Color(0xff654ea3), Color(0xffeaafc8)])),
+        child: Scaffold(
+          backgroundColor: Colors.transparent,
+          appBar: AppBar(
+            backgroundColor: Colors.black54.withOpacity(0.7),
+            elevation: 2,
+            title: Center(
+                child: Text(
+              isFrag
+                  ? 'File Fragmentation'
+                  : '${component.toString().split(".")[1]} Scheduling',
+              style: const TextStyle(
+                fontFamily: 'Nutino',
               ),
-              // ),
-              // ),
+            )),
+          ),
+          body: LayoutBuilder(
+            builder: (BuildContext context, BoxConstraints constraints) =>
+                SingleChildScrollView(
+              scrollDirection: Axis.vertical,
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: Container(
+                      width: 250,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        // border: Border.all(
+                        //   color: Colors.black,
+                        //   width: 3,
+                        // ),
+                        borderRadius: BorderRadius.circular(20),
+                        color: Colors.black54.withOpacity(0.5),
+                      ),
+                      child: const Center(
+                          child: Text("Choose Algorithm:",
+                              style: TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                                fontFamily: 'Nutino',
+                              ))),
+                    ),
+                  ),
+                  LayoutBuilder(
+                    builder: (context, constraints) =>
+                        buildAlgoToggle(constraints),
+                  ),
+                  IntrinsicHeight(
+                    child: Column(
+                      // crossAxisAlignment: CrossAxisAlignment.stretch,
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        const SizedBox(
+                          width: 100.0,
+                          height: 20.0,
+                        ),
+                        Column(children: [
+                          Container(
+                            width: 250,
+                            height: 40,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(20),
+                              color: Colors.black54.withOpacity(0.5),
+                            ),
+                            child: const Center(
+                                child: Text("Input Format & List:",
+                                    style: TextStyle(
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.white,
+                                      fontFamily: 'Nutino',
+                                    ))),
+                          ),
+                          ElevatedCard2(info_text: InputFormat()),
+                          Container(
+                            width: 250,
+                            height: 40,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(20),
+                              color: Colors.black54.withOpacity(0.5),
+                            ),
+                            child: const Center(
+                                child: Text("Create Your Process List:",
+                                    style: TextStyle(
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.white,
+                                      fontFamily: 'Nutino',
+                                    ))),
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(0, 0, 0, 15),
+                            child: generateDataInputList(),
+                          ),
+                          Visibility(
+                            visible: isRR,
+                            child: Padding(
+                              padding: const EdgeInsets.fromLTRB(
+                                  20.0, 0.0, 20.0, 0.0),
+                              child: TextFormField(
+                                  initialValue: "2",
+                                  keyboardType: TextInputType.number,
+                                  //controller: _controller_tq,
+                                  onChanged: (s) {
+                                    //print("=============OUT=======$s");
+                                    setState(() {
+                                      if(!(s==null) && !(s=="")){
+                                      timeQuantum = int.parse(s);
+                                      //print("=============PASSED=======$timeQuantum");
+                                      for (int i = 0;i < selectedAlgo.length;i++) {
+                                        if (selectedAlgo[i]) runAlgo(i);
+                                      }}
+                                    });
+                                  },
+                                  cursorColor: Colors.white,
+                                  decoration: InputDecoration(
+                                    icon: const Icon(
+                                      Icons.alarm_add,
+                                      color: Colors.black26,
+                                    ),
+                                    border: const OutlineInputBorder(),
+                                    labelText: 'Enter Time Quantum Here',
+                                    errorText:
+                                        error ? "Enter Vaild Input" : null,
+                                    labelStyle: const TextStyle(
+                                      color: Colors.black54,
+                                    ),
+                                    focusColor: Colors.black26,
+                                    iconColor: Colors.white,
+                                    // border: Color(0xff5f65bf),
+                                    //  enabledBorder: UnderlineInputBorder(
+                                    //  borderSide: BorderSide(color: Color(0xff5f65bf)),
+                                    //),
+                                  )),
+                            ),
+                          )
+                        ]),
+                        Flexible(
+                          child: Padding(
+                            padding: const EdgeInsets.fromLTRB(15, 0, 15.0, 0),
+                            child: Column(
+                              children: [
+                                const SizedBox(
+                                  width: 100.0,
+                                  height: 20.0,
+                                ),
+                                Padding(
+                                    padding: const EdgeInsets.all(8.0),
+                                    child: Container(
+                                      width: 250,
+                                      height: 40,
+                                      decoration: BoxDecoration(
+                                        // border: Border.all(
+                                        //   color: Colors.black,
+                                        //   width: 3,
+                                        // ),
+                                        borderRadius: BorderRadius.circular(20),
+                                        color: Colors.black54.withOpacity(0.5),
+                                      ),
+                                      child: const Center(
+                                          child: Text("Process Table:",
+                                              style: TextStyle(
+                                                fontSize: 15,
+                                                fontWeight: FontWeight.bold,
+                                                color: Colors.white,
+                                                fontFamily: 'Nutino',
+                                              ))),
+                                    )),
+                                const SizedBox(
+                                  width: 100.0,
+                                  height: 10.0,
+                                ),
+                                Flexible(
+                                  child: Builder(
+                                    builder: (context) {
+                                      List processes;
+                                      if (choiceText.isEmpty &&
+                                          dataChoice == DataChoice.Own) {
+                                        return const TableErrorContainer(
+                                          text: "Enter List For Output",
+                                        );
+                                      }
+                                      try {
+                                        if (component == Component.Storage) {
+                                          processes = parseStorageOperations();
+                                        } else {
+                                          processes =
+                                              parseComputationProcesses();
+                                          processes[processes.length - 1][1];
+                                        }
+                                      } catch (e) {
+                                        return const TableErrorContainer(
+                                          text: "Invalid Input",
+                                        );
+                                      }
+                                      switch (component) {
+                                        case Component.CPU:
+                                          return ProcessTable.fromProcessList(
+                                              processes as List<List<num>>,
+                                              "Arrival time",
+                                              "Length",
+                                              (int index) => "P${index + 1}");
+                                        case Component.Memory:
+                                          return ProcessTable.fromProcessList(
+                                              processes as List<List<num>>,
+                                              "Memory",
+                                              "Length",
+                                              (int index) =>
+                                                  MemoryProcess.generateName(
+                                                      index));
+                                        case Component.Storage:
+                                          return ProcessTable.fromStorageList(
+                                              processes
+                                                  as List<StorageOperation>);
+                                        default:
+                                          return const TableErrorContainer(
+                                            text: "No Component Selected",
+                                          );
+                                      }
+                                    },
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(
+                    height: 20,
+                  ),
+                  const SizedBox(
+                    height: 10,
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: Container(
+                      width: 250,
+                      height: 40,
+                      decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(20),
+                          color: Colors.black54.withOpacity(0.5)),
+                      child: const Center(
+                          child: Text("Output:",
+                              style: TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                                fontFamily: 'Nutino',
+                              ))),
+                    ),
+                  ),
+                  SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: IntrinsicHeight(child: resWidget!)),
+                  const SizedBox(
+                    height: 10,
+                  ),
+                ],
+              ),
             ),
-            bottomNavigationBar: BottomNavigationBar(
-              selectedLabelStyle: TextStyle(fontFamily: 'Nutino'),
-              items: <BottomNavigationBarItem>[
-                BottomNavigationBarItem(
-                  icon: SvgPicture.asset(
-                    "assets/icons/INFO.svg",
-                    height: 40.0,
-                    width: 50.0,
-                    allowDrawingOutsideViewBox: true,
-                  ),
-                  label: 'INFO',
-
-                  backgroundColor: Colors.black54.withOpacity(0.7),
+            // ),
+            // ),
+          ),
+          bottomNavigationBar: BottomNavigationBar(
+            selectedLabelStyle: TextStyle(fontFamily: 'Nutino'),
+            items: <BottomNavigationBarItem>[
+              BottomNavigationBarItem(
+                icon: SvgPicture.asset(
+                  "assets/icons/INFO.svg",
+                  height: 40.0,
+                  width: 50.0,
+                  allowDrawingOutsideViewBox: true,
                 ),
-                BottomNavigationBarItem(
-                  icon: SvgPicture.asset(
-                    "assets/icons/CPU.svg",
-                    height: 40.0,
-                    width: 50.0,
-                    allowDrawingOutsideViewBox: true,
-                  ),
-                  label: 'CPU',
-
-                  backgroundColor: Colors.black54.withOpacity(0.7),
+                label: 'INFO',
+                backgroundColor: Colors.black54.withOpacity(0.7),
+              ),
+              BottomNavigationBarItem(
+                icon: SvgPicture.asset(
+                  "assets/icons/CPU.svg",
+                  height: 40.0,
+                  width: 50.0,
+                  allowDrawingOutsideViewBox: true,
                 ),
-                BottomNavigationBarItem(
-                  icon: SvgPicture.asset(
-                    "assets/icons/RAM.svg",
-                    height: 40.0,
-                    width: 50.0,
-                    allowDrawingOutsideViewBox: true,
-                  ),
-                  label: 'Memory',
-                  backgroundColor: Colors.black54.withOpacity(0.7),
+                label: 'CPU',
+                backgroundColor: Colors.black54.withOpacity(0.7),
+              ),
+              BottomNavigationBarItem(
+                icon: SvgPicture.asset(
+                  "assets/icons/RAM.svg",
+                  height: 40.0,
+                  width: 50.0,
+                  allowDrawingOutsideViewBox: true,
                 ),
-                BottomNavigationBarItem(
-                  icon: SvgPicture.asset(
-                    "assets/icons/SSD.svg",
-                    height: 40.0,
-                    width: 50.0,
-                    allowDrawingOutsideViewBox: true,
-                  ),
-                  label: 'Storage',
-                  backgroundColor: Colors.black54.withOpacity(0.7),
+                label: 'Memory',
+                backgroundColor: Colors.black54.withOpacity(0.7),
+              ),
+              BottomNavigationBarItem(
+                icon: SvgPicture.asset(
+                  "assets/icons/SSD.svg",
+                  height: 40.0,
+                  width: 50.0,
+                  allowDrawingOutsideViewBox: true,
                 ),
-              ],
-              currentIndex: _selectedIndex,
-              selectedItemColor: Colors.white,
-              onTap: _onItemTapped,
-            ),
+                label: 'Storage',
+                backgroundColor: Colors.black54.withOpacity(0.7),
+              ),
+            ],
+            currentIndex: _selectedIndex,
+            selectedItemColor: Colors.white,
+            onTap: _onItemTapped,
           ),
         ));
   }
@@ -349,7 +438,6 @@ class _AlgoAppState extends State<AlgoApp> {
     List algoEnum = getComponentAlgoEnum()!;
     return ToggleSwitch(
       activeBorders: [
-
         Border.all(
           color: Color(0xff5f65bf),
           width: 3.0,
@@ -387,17 +475,17 @@ class _AlgoAppState extends State<AlgoApp> {
       ),
       onToggle: (index) {
         if (index != null && selectedAlgo[index]) {
-          setState(() {
-            // selectedAlgo[index] = false;
-            // error = false;
-            // resWidget = Padding(padding: EdgeInsets.all(10.0));
-            // curr_idx = index;
-            // print("IDX= $index");
-          });
-        }
-        else {
+          setState(() {});
+        } else {
           setState(() {
             curr_idx = index!;
+          });
+          setState(() {
+            if (component == Component.CPU && index == 2) {
+              isRR = true;
+            } else {
+              isRR = false;
+            }
           });
           runAlgo(index!);
         }
@@ -408,15 +496,24 @@ class _AlgoAppState extends State<AlgoApp> {
 
   Widget generateDataInputList() {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20.0, 0.0, 20.0, 0.0),
-      child: TextField(
-        cursorColor: Colors.orangeAccent,
+      padding: const EdgeInsets.fromLTRB(20.0, 20.0, 20.0, 0.0),
+      child: TextFormField(
+        cursorColor: Colors.white,
         focusNode: focus,
         controller: _controller,
         decoration: InputDecoration(
-          hintText: "Enter Here",
+          icon: Icon(
+            Icons.data_array_sharp,
+            color: Colors.black26,
+          ),
+          border: OutlineInputBorder(
+            borderSide: BorderSide(color: Color(0xff5f65bf)),
+          ),
+          labelText: 'Enter Input Array Here',
           errorText: error ? "Enter Vaild Input" : null,
-          errorStyle: TextStyle(color: Colors.white,fontFamily: 'Nutino',)
+          labelStyle: TextStyle(
+            color: Colors.black54,
+          ),
         ),
         onChanged: (s) {
           setState(() {
@@ -433,7 +530,8 @@ class _AlgoAppState extends State<AlgoApp> {
     List? algoEnum;
     switch (component) {
       case Component.CPU:
-        algoEnum = CpuAlgo.values;//["First Come First Serve","Shortest Job First","Round Robin",""];//CpuAlgo.values;
+        algoEnum = CpuAlgo
+            .values; //["First Come First Serve","Shortest Job First","Round Robin",""];//CpuAlgo.values;
         break;
       case Component.Memory:
         algoEnum = MemoryAlgo.values;
@@ -489,8 +587,8 @@ class _AlgoAppState extends State<AlgoApp> {
       Widget? algoResult;
       switch (component) {
         case Component.CPU:
-          algoResult = runCpuAlgo(
-              CpuAlgo.values[algoIndex], log, parseComputationProcesses());
+          algoResult = runCpuAlgo(CpuAlgo.values[algoIndex], log,
+              parseComputationProcesses(), timeQuantum);
           break;
         case Component.Memory:
           algoResult = runMemoryAlgo(
@@ -533,10 +631,12 @@ class TableErrorContainer extends StatelessWidget {
       height: 20,
       decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(20),
-          color: Colors.white.withOpacity(0.5)
-      ),
+          color: Colors.white.withOpacity(0.5)),
       alignment: Alignment.center,
-      child: Text(text!,style: TextStyle(fontFamily: 'Nutino',fontWeight: FontWeight.bold),),
+      child: Text(
+        text!,
+        style: TextStyle(fontFamily: 'Nutino', fontWeight: FontWeight.bold),
+      ),
     );
   }
 }
@@ -573,16 +673,20 @@ class ProcessTable extends StatelessWidget {
         List<TableCellPadded> cellList = List.generate(
             processes[index].length,
             (secondIndex) => TableCellPadded(
-                child: Center(child: Text(processes[index][secondIndex].toString()))));
+                child: Center(
+                    child: Text(processes[index][secondIndex].toString()))));
         cellList.insert(
             0,
             TableCellPadded(
                 child: Center(
-                  child: Text(
-              generateID(index),
-              style: TextStyle(color: Colors.black,fontFamily: 'Nutino',),
-            ),
-                )));
+              child: Text(
+                generateID(index),
+                style: TextStyle(
+                  color: Colors.black,
+                  fontFamily: 'Nutino',
+                ),
+              ),
+            )));
         return TableRow(
           children: cellList,
         );
@@ -601,7 +705,6 @@ class ProcessTable extends StatelessWidget {
               ),
             ),
             TableCellPadded(
-
               child: Center(
                 child: Text(
                   firstProperty,
@@ -628,15 +731,39 @@ class ProcessTable extends StatelessWidget {
       (index) {
         var operation = operations[index];
         List<TableCellPadded> cellList = [
-          TableCellPadded(child: Center(child: Text((index + 1).toString(),style: TextStyle(fontFamily: 'Nutino',),))),
           TableCellPadded(
-              child: Center(child: Text(operation.operationType.toString().split('.')[1]))),
-          TableCellPadded(child: Center(child: Text(operation.fileName!,style: TextStyle(fontFamily: 'Nutino',)))),
+              child: Center(
+                  child: Text(
+            (index + 1).toString(),
+            style: TextStyle(
+              fontFamily: 'Nutino',
+            ),
+          ))),
+          TableCellPadded(
+              child: Center(
+                  child:
+                      Text(operation.operationType.toString().split('.')[1]))),
+          TableCellPadded(
+              child: Center(
+                  child: Text(operation.fileName!,
+                      style: TextStyle(
+                        fontFamily: 'Nutino',
+                      )))),
         ];
         if (operation.operationType == StorageOperationType.DELETE) {
-          cellList.add(const TableCellPadded(child: Center(child: Text('Entire file',style:  TextStyle(fontFamily: 'Nutino',)))));
+          cellList.add(const TableCellPadded(
+              child: Center(
+                  child: Text('Entire file',
+                      style: TextStyle(
+                        fontFamily: 'Nutino',
+                      )))));
         } else {
-          cellList.add(TableCellPadded(child: Center(child: Text(operation.size.toString(), style:TextStyle(fontFamily: 'Nutino',)))));
+          cellList.add(TableCellPadded(
+              child: Center(
+                  child: Text(operation.size.toString(),
+                      style: TextStyle(
+                        fontFamily: 'Nutino',
+                      )))));
         }
         return TableRow(
           children: cellList,
@@ -708,7 +835,6 @@ class AlgoResult extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-
     return Container(
       width: 800,
       padding: EdgeInsets.all(10.0),
@@ -729,5 +855,3 @@ class AlgoResult extends StatelessWidget {
     );
   }
 }
-
-

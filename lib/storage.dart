@@ -12,14 +12,10 @@ enum StorageOperationType { CREATE, ADD, DELETE }
 
 const int DRIVE_SIZE = 48;
 
-String getStorageData(DataChoice? valik) {
-  switch (valik) {
+String getStorageData(DataChoice? choice) {
+  switch (choice) {
     case DataChoice.First:
-      return "A,2;B,3;A,-;C,4;B,+3;D,5;E,15;C,-;F,5";
-    case DataChoice.Second:
-      return "A,4;B,3;C,6;D,5;C,+2;B,-;E,5;A,-;F,10";
-    case DataChoice.Third:
-      return "A,2;B,3;C,4;D,5;B,-;E,7;D,-;E,+3;F,10";
+      return "A,1;B,2;A,-;C,3;B,+2;D,5;E,6;B,-;F,3";
     default:
       return "";
   }
@@ -50,8 +46,8 @@ Widget runStorageAlgo(StringBuffer log, List<StorageOperation> operations) {
   return Column(
     children: [
       resultFromList(resultList),
-      Center(child: Text('Fragmented files: ${(frags[0] * 100).toStringAsFixed(2)}%',style: TextStyle(fontFamily: 'Nutino',),)),
-      Center(child: Text('Fragmented area: ${(frags[1] * 100).toStringAsFixed(2)}%',style: TextStyle(fontFamily: 'Nutino',),)),
+      Center(child: Text('Fragmented files: ${(frags[0] * 100).toStringAsFixed(2)}%',style: const TextStyle(fontFamily: 'Nutino',),)),
+      Center(child: Text('Fragmented area: ${(frags[1] * 100).toStringAsFixed(2)}%',style: const TextStyle(fontFamily: 'Nutino',),)),
     ],
   );
 }
@@ -173,7 +169,7 @@ class StorageResult extends StatelessWidget {
     return IntrinsicHeight(
       child: Table(
         children: list,
-        columnWidths: {
+        columnWidths: const {
           0: FixedColumnWidth(50),
         },
       ),
@@ -193,7 +189,7 @@ StorageResult resultFromList(List<TableRow> list) {
             (index + 1).toString(),
             maxLines: 1,
             overflow: TextOverflow.fade,
-            style: TextStyle(fontFamily: 'Nutino',),
+            style: const TextStyle(fontFamily: 'Nutino',),
           ),
         ),
       ),
@@ -210,10 +206,10 @@ StorageResult resultFromList(List<TableRow> list) {
 }
 
 TableRow rowFromDrive(HardDrive drive, int step, bool finalRow, bool failed) {
-  Color? freeColor = Colors.grey[600];
+  Color? freeColor = Colors.blueGrey;
   if (finalRow) {
     if (failed) {
-      freeColor = Colors.red;
+      freeColor = Colors.blue;
     } else {
       freeColor = Colors.green;
     }
@@ -224,14 +220,14 @@ TableRow rowFromDrive(HardDrive drive, int step, bool finalRow, bool failed) {
       var color = freeColor;
       if (!finalRow) {
         if (drive.blocks[index] != '') {
-          color = color = Color((Random(drive.blocks[index].hashCode).nextDouble() * 0xFFFFFF).toInt()).withOpacity(1.0);
+          color = color = Color((Random(drive.blocks[index].hashCode).nextDouble() * 0xFFFFFF).toInt()).withOpacity(0.7);
         }
       }
       return TableCell(
         child: Container(
           color: color,
           alignment: Alignment.center,
-          child: Center(child: Text(finalRow ? "" : drive.blocks[index]!,style: TextStyle(fontFamily: 'Nutino',),)),
+          child: Center(child: Text(finalRow ? "" : drive.blocks[index]!,style: const TextStyle(fontFamily: 'Nutino',),)),
         ),
       );
     },
@@ -248,7 +244,7 @@ TableRow rowFromDrive(HardDrive drive, int step, bool finalRow, bool failed) {
                     ? 'Fail'
                     : 'Done'
                 : 'Step $step',
-            style: TextStyle(fontFamily: 'Nutino',),
+            style: const TextStyle(fontFamily: 'Nutino',),
           ),
         ),
       ),
