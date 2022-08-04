@@ -66,7 +66,7 @@ It's carried out as follows:
       scrollDirection: Axis.vertical,
       child: Container(
         width: double.infinity,
-        height: 3400,
+        height: 3600,
         decoration: const BoxDecoration(
             gradient: LinearGradient(
                 begin: Alignment.topRight,
