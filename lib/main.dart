@@ -4,30 +4,27 @@ import 'package:envision/memory.dart';
 import 'package:envision/storage.dart';
 import 'package:toggle_switch/toggle_switch.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'dart:ui';
 import 'info.dart';
+import 'dart:ui';
 import 'ElevatedCard2.dart';
 
 void main() => runApp(MaterialApp(
-  debugShowCheckedModeBanner: false,
+    debugShowCheckedModeBanner: false,
     title: 'Envision',
     theme: ThemeData(
       primaryColor: Colors.white,
       primaryColorDark: Colors.white,
       highlightColor: Colors.white,
       visualDensity: VisualDensity.adaptivePlatformDensity,
-      bottomSheetTheme: BottomSheetThemeData(
-        backgroundColor: Colors.black.withAlpha(0),
-      ),
     ),
-    home: AlgoApp()));
+    home: const AlgoApp()));
 
 enum DataChoice { First, Second, Third, Own }
 
 enum Component { CPU, Memory, Storage }
 
 class AlgoApp extends StatefulWidget {
-  const AlgoApp({Key? key}) : super(key: key);
+  const AlgoApp({super.key});
 
   @override
   _AlgoAppState createState() => _AlgoAppState();
@@ -51,10 +48,11 @@ class _AlgoAppState extends State<AlgoApp> {
   void _onItemTapped(int index) {
     setState(() {
       _selectedIndex = index;
+      curr_idx = 0;
       if (index == 0) {
         Navigator.push(
           context,
-          MaterialPageRoute(builder: (context) => info()),
+          MaterialPageRoute(builder: (context) => const info()),
         );
       } else if (index == 1) {
         component = Component.CPU;
@@ -72,7 +70,7 @@ class _AlgoAppState extends State<AlgoApp> {
 
   String InputFormat() {
     if (component == Component.CPU) {
-      return '''      
+      return '''
 <Process1, Length1; Process1, Length1; >
 0,2;3,8;4,5;6,9;8,3''';
     } else if (component == Component.Memory) {
@@ -94,7 +92,7 @@ A,1; B,2; A,-; C,3; B,+2; D,5; E,6; B,-; F,3
   void initState() {
     setSelectedAlgoList();
     _controller = TextEditingController(text: choiceText);
-    resWidget = Padding(padding: EdgeInsets.all(50.0));
+    resWidget = const Padding(padding: EdgeInsets.all(50.0));
     focus.addListener(() {
       if (focus.hasFocus) setState(() => dataChoice = DataChoice.Own);
     });
@@ -110,56 +108,114 @@ A,1; B,2; A,-; C,3; B,+2; D,5; E,6; B,-; F,3
   @override
   Widget build(BuildContext context) {
     bool isFrag = component == Component.Storage;
-    return Container(
-        decoration: const BoxDecoration(
-            gradient: LinearGradient(
-                begin: Alignment.topRight,
-                end: Alignment.bottomLeft,
-                colors: [Color(0xff654ea3), Color(0xffeaafc8)])),
-        child: Scaffold(
-          backgroundColor: Colors.transparent,
-          appBar: AppBar(
-            backgroundColor: Colors.black54.withOpacity(0.7),
-            elevation: 2,
-            title: Center(
-                child: Text(
-              isFrag
-                  ? 'File Fragmentation'
-                  : '${component.toString().split(".")[1]} Scheduling',
-              style: const TextStyle(
-                fontFamily: 'Nutino',
-              ),
-            )),
+
+    Widget buildSectionTitle(String title) {
+      return Container(
+        width: 250,
+        height: 40,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(20),
+          color: Colors.black54.withOpacity(0.5),
+        ),
+        child: Center(
+          child: Text(
+            title,
+            style: const TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+              fontFamily: 'Nutino',
+            ),
           ),
-          body: LayoutBuilder(
+        ),
+      );
+    }
+
+    Widget buildProcessTable() {
+      List processes;
+      if (choiceText.isEmpty && dataChoice == DataChoice.Own) {
+        return const TableErrorContainer(text: "Enter List For Output");
+      }
+      try {
+        if (component == Component.Storage) {
+          processes = parseStorageOperations();
+        } else {
+          processes = parseComputationProcesses();
+          processes[processes.length - 1][1];
+        }
+      } catch (e) {
+        return const TableErrorContainer(text: "Invalid Input");
+      }
+      switch (component) {
+        case Component.CPU:
+          return ProcessTable.fromProcessList(
+            processes as List<List<num>>,
+            "Arrival time",
+            "Length",
+            (int index) => "P${index + 1}",
+          );
+        case Component.Memory:
+          return ProcessTable.fromProcessList(
+            processes as List<List<num>>,
+            "Memory",
+            "Length",
+            (int index) => MemoryProcess.generateName(index),
+          );
+        case Component.Storage:
+          return ProcessTable.fromStorageList(
+            processes as List<StorageOperation>,
+          );
+        default:
+          return const TableErrorContainer(text: "No Component Selected");
+      }
+    }
+
+    return Container(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topRight,
+          end: Alignment.bottomLeft,
+          colors: [Color(0xff654ea3), Color(0xffeaafc8)],
+        ),
+      ),
+      child: Scaffold(
+        extendBodyBehindAppBar: true,
+        backgroundColor: Colors.transparent,
+        appBar: PreferredSize(
+          child: ClipRRect(
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+              child: AppBar(
+                backgroundColor: Colors.black54.withOpacity(0.7),
+                elevation: 0,
+                title: Center(
+                  child: Text(
+                    isFrag
+                        ? 'File Fragmentation'
+                        : '${component.toString().split(".")[1]} Scheduling',
+                    style: const TextStyle(fontFamily: 'Nutino',color: Colors.white,fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ),
+            ),
+          ),
+          preferredSize: Size(
+            double.infinity,
+            56.0,
+          ),
+        ),
+        body: Stack(children: [
+          LayoutBuilder(
             builder: (BuildContext context, BoxConstraints constraints) =>
                 SingleChildScrollView(
               scrollDirection: Axis.vertical,
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
+                  const SizedBox(height:  2*kToolbarHeight,),
                   Padding(
                     padding: const EdgeInsets.all(8.0),
-                    child: Container(
-                      width: 250,
-                      height: 40,
-                      decoration: BoxDecoration(
-                        // border: Border.all(
-                        //   color: Colors.black,
-                        //   width: 3,
-                        // ),
-                        borderRadius: BorderRadius.circular(20),
-                        color: Colors.black54.withOpacity(0.5),
-                      ),
-                      child: const Center(
-                          child: Text("Choose Algorithm:",
-                              style: TextStyle(
-                                fontSize: 15,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white,
-                                fontFamily: 'Nutino',
-                              ))),
-                    ),
+                    child: buildSectionTitle("Choose Algorithm:"),
                   ),
                   LayoutBuilder(
                     builder: (context, constraints) =>
@@ -167,69 +223,36 @@ A,1; B,2; A,-; C,3; B,+2; D,5; E,6; B,-; F,3
                   ),
                   IntrinsicHeight(
                     child: Column(
-                      // crossAxisAlignment: CrossAxisAlignment.stretch,
                       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                       children: [
-                        const SizedBox(
-                          width: 100.0,
-                          height: 20.0,
-                        ),
-                        Column(children: [
-                          Container(
-                            width: 250,
-                            height: 40,
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(20),
-                              color: Colors.black54.withOpacity(0.5),
+                        const SizedBox(height: 20.0),
+                        Column(
+                          children: [
+                            buildSectionTitle("Input Format & List:"),
+                            ElevatedCard2(info_text: InputFormat()),
+                            buildSectionTitle("Create Your Process List:"),
+                            Padding(
+                              padding: const EdgeInsets.fromLTRB(0, 0, 0, 15),
+                              child: generateDataInputList(),
                             ),
-                            child: const Center(
-                                child: Text("Input Format & List:",
-                                    style: TextStyle(
-                                      fontSize: 15,
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.white,
-                                      fontFamily: 'Nutino',
-                                    ))),
-                          ),
-                          ElevatedCard2(info_text: InputFormat()),
-                          Container(
-                            width: 250,
-                            height: 40,
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(20),
-                              color: Colors.black54.withOpacity(0.5),
-                            ),
-                            child: const Center(
-                                child: Text("Create Your Process List:",
-                                    style: TextStyle(
-                                      fontSize: 15,
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.white,
-                                      fontFamily: 'Nutino',
-                                    ))),
-                          ),
-                          Padding(
-                            padding: const EdgeInsets.fromLTRB(0, 0, 0, 15),
-                            child: generateDataInputList(),
-                          ),
-                          Visibility(
-                            visible: isRR,
-                            child: Padding(
-                              padding: const EdgeInsets.fromLTRB(
-                                  20.0, 0.0, 20.0, 0.0),
-                              child: TextFormField(
+                            Visibility(
+                              visible: isRR,
+                              child: Padding(
+                                padding:
+                                    const EdgeInsets.symmetric(horizontal: 20),
+                                child: TextFormField(
                                   initialValue: "2",
                                   keyboardType: TextInputType.number,
-                                  //controller: _controller_tq,
                                   onChanged: (s) {
-                                    //print("=============OUT=======$s");
                                     setState(() {
-                                      if(!(s==null) && !(s=="")){
-                                      timeQuantum = int.parse(s);
-                                      //print("=============PASSED=======$timeQuantum");
-                                      for (int i = 0;i < selectedAlgo.length;i++) {
-                                        if (selectedAlgo[i]) runAlgo(i);
-                                      }}
+                                      if (s.isNotEmpty) {
+                                        timeQuantum = int.parse(s);
+                                        for (int i = 0;
+                                            i < selectedAlgo.length;
+                                            i++) {
+                                          if (selectedAlgo[i]) runAlgo(i);
+                                        }
+                                      }
                                     });
                                   },
                                   cursorColor: Colors.white,
@@ -241,105 +264,28 @@ A,1; B,2; A,-; C,3; B,+2; D,5; E,6; B,-; F,3
                                     border: const OutlineInputBorder(),
                                     labelText: 'Enter Time Quantum Here',
                                     errorText:
-                                        error ? "Enter Vaild Input" : null,
+                                        error ? "Enter Valid Input" : null,
                                     labelStyle: const TextStyle(
                                       color: Colors.black54,
                                     ),
-                                    focusColor: Colors.black26,
-                                    iconColor: Colors.white,
-                                    // border: Color(0xff5f65bf),
-                                    //  enabledBorder: UnderlineInputBorder(
-                                    //  borderSide: BorderSide(color: Color(0xff5f65bf)),
-                                    //),
-                                  )),
-                            ),
-                          )
-                        ]),
-                        Flexible(
-                          child: Padding(
-                            padding: const EdgeInsets.fromLTRB(15, 0, 15.0, 0),
-                            child: Column(
-                              children: [
-                                const SizedBox(
-                                  width: 100.0,
-                                  height: 20.0,
-                                ),
-                                Padding(
-                                    padding: const EdgeInsets.all(8.0),
-                                    child: Container(
-                                      width: 250,
-                                      height: 40,
-                                      decoration: BoxDecoration(
-                                        // border: Border.all(
-                                        //   color: Colors.black,
-                                        //   width: 3,
-                                        // ),
-                                        borderRadius: BorderRadius.circular(20),
-                                        color: Colors.black54.withOpacity(0.5),
-                                      ),
-                                      child: const Center(
-                                          child: Text("Process Table:",
-                                              style: TextStyle(
-                                                fontSize: 15,
-                                                fontWeight: FontWeight.bold,
-                                                color: Colors.white,
-                                                fontFamily: 'Nutino',
-                                              ))),
-                                    )),
-                                const SizedBox(
-                                  width: 100.0,
-                                  height: 10.0,
-                                ),
-                                Flexible(
-                                  child: Builder(
-                                    builder: (context) {
-                                      List processes;
-                                      if (choiceText.isEmpty &&
-                                          dataChoice == DataChoice.Own) {
-                                        return const TableErrorContainer(
-                                          text: "Enter List For Output",
-                                        );
-                                      }
-                                      try {
-                                        if (component == Component.Storage) {
-                                          processes = parseStorageOperations();
-                                        } else {
-                                          processes =
-                                              parseComputationProcesses();
-                                          processes[processes.length - 1][1];
-                                        }
-                                      } catch (e) {
-                                        return const TableErrorContainer(
-                                          text: "Invalid Input",
-                                        );
-                                      }
-                                      switch (component) {
-                                        case Component.CPU:
-                                          return ProcessTable.fromProcessList(
-                                              processes as List<List<num>>,
-                                              "Arrival time",
-                                              "Length",
-                                              (int index) => "P${index + 1}");
-                                        case Component.Memory:
-                                          return ProcessTable.fromProcessList(
-                                              processes as List<List<num>>,
-                                              "Memory",
-                                              "Length",
-                                              (int index) =>
-                                                  MemoryProcess.generateName(
-                                                      index));
-                                        case Component.Storage:
-                                          return ProcessTable.fromStorageList(
-                                              processes
-                                                  as List<StorageOperation>);
-                                        default:
-                                          return const TableErrorContainer(
-                                            text: "No Component Selected",
-                                          );
-                                      }
-                                    },
                                   ),
                                 ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        Flexible(
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 15),
+                            child: Column(
+                              children: [
+                                const SizedBox(height: 20.0),
+                                Padding(
+                                  padding: const EdgeInsets.all(8.0),
+                                  child: buildSectionTitle("Process Table:"),
+                                ),
+                                const SizedBox(height: 10.0),
+                                Flexible(child: buildProcessTable()),
                               ],
                             ),
                           ),
@@ -347,114 +293,96 @@ A,1; B,2; A,-; C,3; B,+2; D,5; E,6; B,-; F,3
                       ],
                     ),
                   ),
-                  const SizedBox(
-                    height: 20,
-                  ),
-                  const SizedBox(
-                    height: 10,
-                  ),
+                  const SizedBox(height: 20),
                   Padding(
                     padding: const EdgeInsets.all(8.0),
-                    child: Container(
-                      width: 250,
-                      height: 40,
-                      decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(20),
-                          color: Colors.black54.withOpacity(0.5)),
-                      child: const Center(
-                          child: Text("Output:",
-                              style: TextStyle(
-                                fontSize: 15,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white,
-                                fontFamily: 'Nutino',
-                              ))),
-                    ),
+                    child: buildSectionTitle("Output:"),
                   ),
                   SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      child: IntrinsicHeight(child: resWidget!)),
-                  const SizedBox(
-                    height: 10,
+                    scrollDirection: Axis.horizontal,
+                    child: IntrinsicHeight(child: resWidget!),
                   ),
+                  const SizedBox(height: 2*kToolbarHeight+5,),
                 ],
               ),
             ),
-            // ),
-            // ),
           ),
-          bottomNavigationBar: BottomNavigationBar(
-            selectedLabelStyle: TextStyle(fontFamily: 'Nutino'),
-            items: <BottomNavigationBarItem>[
-              BottomNavigationBarItem(
-                icon: SvgPicture.asset(
-                  "assets/icons/INFO.svg",
-                  height: 40.0,
-                  width: 50.0,
-                  allowDrawingOutsideViewBox: true,
+          Align(
+            alignment: Alignment.bottomCenter,
+            child: ClipRect(
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                child: Container(
+                  color: Colors.black.withOpacity(0.5),
+                  child: BottomNavigationBar(
+                    selectedLabelStyle: const TextStyle(fontFamily: 'Nutino'),
+                    items: [
+                      BottomNavigationBarItem(
+                        icon: SvgPicture.asset(
+                          "assets/icons/INFO.svg",
+                          height: 40.0,
+                          width: 50.0,
+                          allowDrawingOutsideViewBox: true,
+                        ),
+                        label: 'INFO',
+                        backgroundColor: Colors.black54.withOpacity(0.3),
+                      ),
+                      BottomNavigationBarItem(
+                        icon: SvgPicture.asset(
+                          "assets/icons/CPU.svg",
+                          height: 40.0,
+                          width: 50.0,
+                          allowDrawingOutsideViewBox: true,
+                        ),
+                        label: 'CPU',
+                        backgroundColor: Colors.black54.withOpacity(0.3),
+                      ),
+                      BottomNavigationBarItem(
+                        icon: SvgPicture.asset(
+                          "assets/icons/RAM.svg",
+                          height: 40.0,
+                          width: 50.0,
+                          allowDrawingOutsideViewBox: true,
+                        ),
+                        label: 'Memory',
+                        backgroundColor: Colors.black54.withOpacity(0.3),
+                      ),
+                      BottomNavigationBarItem(
+                        icon: SvgPicture.asset(
+                          "assets/icons/SSD.svg",
+                          height: 40.0,
+                          width: 50.0,
+                          allowDrawingOutsideViewBox: true,
+                        ),
+                        label: 'Storage',
+                        backgroundColor: Colors.black54.withOpacity(0.3),
+                      ),
+                    ],
+                    currentIndex: _selectedIndex,
+                    selectedItemColor: Colors.white,
+                    backgroundColor: Colors.transparent,
+                    onTap: _onItemTapped,
+                  ),
                 ),
-                label: 'INFO',
-                backgroundColor: Colors.black54.withOpacity(0.7),
               ),
-              BottomNavigationBarItem(
-                icon: SvgPicture.asset(
-                  "assets/icons/CPU.svg",
-                  height: 40.0,
-                  width: 50.0,
-                  allowDrawingOutsideViewBox: true,
-                ),
-                label: 'CPU',
-                backgroundColor: Colors.black54.withOpacity(0.7),
-              ),
-              BottomNavigationBarItem(
-                icon: SvgPicture.asset(
-                  "assets/icons/RAM.svg",
-                  height: 40.0,
-                  width: 50.0,
-                  allowDrawingOutsideViewBox: true,
-                ),
-                label: 'Memory',
-                backgroundColor: Colors.black54.withOpacity(0.7),
-              ),
-              BottomNavigationBarItem(
-                icon: SvgPicture.asset(
-                  "assets/icons/SSD.svg",
-                  height: 40.0,
-                  width: 50.0,
-                  allowDrawingOutsideViewBox: true,
-                ),
-                label: 'Storage',
-                backgroundColor: Colors.black54.withOpacity(0.7),
-              ),
-            ],
-            currentIndex: _selectedIndex,
-            selectedItemColor: Colors.white,
-            onTap: _onItemTapped,
+            ),
           ),
-        ));
+        ]),
+      ),
+    );
   }
 
   Widget buildAlgoToggle(BoxConstraints constraints) {
     List algoEnum = getComponentAlgoEnum()!;
     return ToggleSwitch(
-      activeBorders: [
-        Border.all(
-          color: Color(0xff5f65bf),
+      key: ValueKey(_selectedIndex),
+      activeBorders: List.generate(
+        algoEnum?.length ?? 0,
+        (index) => Border.all(
+          color: const Color(0xff5f65bf),
           width: 3.0,
         ),
-        Border.all(
-          color: Color(0xff5f65bf),
-          width: 3.0,
-        ),
-        Border.all(
-          color: Color(0xff5f65bf),
-          width: 3.0,
-        ),
-        Border.all(
-          color: Color(0xff5f65bf),
-          width: 3.0,
-        ),
-      ],
+      ),
       activeFgColor: Colors.white,
       inactiveFgColor: Colors.white,
       isVertical: true,
@@ -462,17 +390,15 @@ A,1; B,2; A,-; C,3; B,+2; D,5; E,6; B,-; F,3
       radiusStyle: true,
       cornerRadius: 20.0,
       initialLabelIndex: curr_idx,
-      activeBgColors: [
-        const [Color(0xffa29fd9)],
-        const [Color(0xffa29fd9)],
-        const [Color(0xffa29fd9)],
-        const [Color(0xffa29fd9)],
-        const [Color(0xffa29fd9)],
-      ],
-      labels: List.generate(
-        algoEnum.length,
-        (index) => algoEnum[index].toString().split(".")[1],
+      activeBgColors: List.generate(
+        algoEnum?.length ?? 0, // Match number of options
+        (index) => [const Color(0xffa29fd9)],
       ),
+      labels: algoEnum
+              ?.map((algo) =>
+                  algo.toString().split('.').last) // Use dynamic labels
+              .toList() ??
+          [], // Fallback to empty list
       onToggle: (index) {
         if (index != null && selectedAlgo[index]) {
           setState(() {});
@@ -502,24 +428,25 @@ A,1; B,2; A,-; C,3; B,+2; D,5; E,6; B,-; F,3
         focusNode: focus,
         controller: _controller,
         decoration: InputDecoration(
-          icon: Icon(
+          icon: const Icon(
             Icons.data_array_sharp,
             color: Colors.black26,
           ),
-          border: OutlineInputBorder(
+          border: const OutlineInputBorder(
             borderSide: BorderSide(color: Color(0xff5f65bf)),
           ),
           labelText: 'Enter Input Array Here',
           errorText: error ? "Enter Vaild Input" : null,
-          labelStyle: TextStyle(
+          labelStyle: const TextStyle(
             color: Colors.black54,
           ),
         ),
         onChanged: (s) {
           setState(() {
             choiceText = s;
-            for (int i = 0; i < selectedAlgo.length; i++)
+            for (int i = 0; i < selectedAlgo.length; i++) {
               if (selectedAlgo[i]) runAlgo(i);
+            }
           });
         },
       ),
@@ -530,8 +457,7 @@ A,1; B,2; A,-; C,3; B,+2; D,5; E,6; B,-; F,3
     List? algoEnum;
     switch (component) {
       case Component.CPU:
-        algoEnum = CpuAlgo
-            .values; //["First Come First Serve","Shortest Job First","Round Robin",""];//CpuAlgo.values;
+        algoEnum = CpuAlgo.values;
         break;
       case Component.Memory:
         algoEnum = MemoryAlgo.values;
@@ -539,7 +465,12 @@ A,1; B,2; A,-; C,3; B,+2; D,5; E,6; B,-; F,3
       case Component.Storage:
         algoEnum = StorageAlgo.values;
         break;
+      case null:
+        algoEnum = [];
+        break;
     }
+    // Debugging: Log algoEnum to verify its content
+    print('Current algoEnum: $algoEnum for component: $component');
     return algoEnum;
   }
 
@@ -581,7 +512,7 @@ A,1; B,2; A,-; C,3; B,+2; D,5; E,6; B,-; F,3
   }
 
   void runAlgo(int algoIndex) {
-    StringBuffer log = new StringBuffer();
+    StringBuffer log = StringBuffer();
     log.writeln("Parsing input");
     try {
       Widget? algoResult;
@@ -596,6 +527,8 @@ A,1; B,2; A,-; C,3; B,+2; D,5; E,6; B,-; F,3
           break;
         case Component.Storage:
           algoResult = runStorageAlgo(log, parseStorageOperations());
+          break;
+        case null:
           break;
       }
       setState(() {
@@ -617,9 +550,9 @@ A,1; B,2; A,-; C,3; B,+2; D,5; E,6; B,-; F,3
 
 class TableErrorContainer extends StatelessWidget {
   const TableErrorContainer({
-    Key? key,
+    super.key,
     this.text,
-  }) : super(key: key);
+  });
 
   final String? text;
 
@@ -635,7 +568,8 @@ class TableErrorContainer extends StatelessWidget {
       alignment: Alignment.center,
       child: Text(
         text!,
-        style: TextStyle(fontFamily: 'Nutino', fontWeight: FontWeight.bold),
+        style:
+            const TextStyle(fontFamily: 'Nutino', fontWeight: FontWeight.bold),
       ),
     );
   }
@@ -647,13 +581,13 @@ class TableCellPadded extends StatelessWidget {
   final TableCellVerticalAlignment? verticalAlignment;
 
   const TableCellPadded(
-      {Key? key, this.padding, required this.child, this.verticalAlignment})
-      : super(key: key);
+      {super.key, this.padding, required this.child, this.verticalAlignment});
 
   @override
   TableCell build(BuildContext context) => TableCell(
       verticalAlignment: verticalAlignment,
-      child: Padding(padding: padding ?? EdgeInsets.all(5.0), child: child));
+      child:
+          Padding(padding: padding ?? const EdgeInsets.all(5.0), child: child));
 }
 
 class ProcessTable extends StatelessWidget {
@@ -681,7 +615,7 @@ class ProcessTable extends StatelessWidget {
                 child: Center(
               child: Text(
                 generateID(index),
-                style: TextStyle(
+                style: const TextStyle(
                   color: Colors.black,
                   fontFamily: 'Nutino',
                 ),
@@ -735,7 +669,7 @@ class ProcessTable extends StatelessWidget {
               child: Center(
                   child: Text(
             (index + 1).toString(),
-            style: TextStyle(
+            style: const TextStyle(
               fontFamily: 'Nutino',
             ),
           ))),
@@ -746,7 +680,7 @@ class ProcessTable extends StatelessWidget {
           TableCellPadded(
               child: Center(
                   child: Text(operation.fileName!,
-                      style: TextStyle(
+                      style: const TextStyle(
                         fontFamily: 'Nutino',
                       )))),
         ];
@@ -761,7 +695,7 @@ class ProcessTable extends StatelessWidget {
           cellList.add(TableCellPadded(
               child: Center(
                   child: Text(operation.size.toString(),
-                      style: TextStyle(
+                      style: const TextStyle(
                         fontFamily: 'Nutino',
                       )))));
         }
@@ -812,9 +746,9 @@ class ProcessTable extends StatelessWidget {
   }
 
   const ProcessTable({
-    Key? key,
+    super.key,
     required this.rows,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -831,13 +765,13 @@ class ProcessTable extends StatelessWidget {
 class AlgoResult extends StatelessWidget {
   final Widget? resultWidget;
   final StringBuffer log;
-  const AlgoResult(this.resultWidget, this.log);
+  const AlgoResult(this.resultWidget, this.log, {super.key});
 
   @override
   Widget build(BuildContext context) {
     return Container(
       width: 800,
-      padding: EdgeInsets.all(10.0),
+      padding: const EdgeInsets.all(10.0),
       decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(10.0),
           color: Colors.white.withOpacity(0.25),
@@ -848,7 +782,7 @@ class AlgoResult extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Padding(
-              padding: EdgeInsets.fromLTRB(0, 10.0, 0.0, 20.0),
+              padding: const EdgeInsets.fromLTRB(0, 10.0, 0.0, 20.0),
               child: resultWidget!),
         ],
       ),

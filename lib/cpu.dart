@@ -1,8 +1,6 @@
 import 'dart:collection';
 import 'dart:math';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 import 'main.dart';
 
@@ -42,7 +40,7 @@ Widget FCFS(List<List<num>> processes, StringBuffer log) {
     if (process[0] > totalTime) {
       int time = process[0] - totalTime as int;
       log.write("\nWaiting for $time");
-      resList.add(new CpuProcessBar(totalTime as int, totalTime + time, "", Colors.grey));
+      resList.add(CpuProcessBar(totalTime as int, totalTime + time, "", Colors.grey));
       totalTime += time;
     }
 
@@ -73,7 +71,7 @@ Widget SJF(List<List<num>> processes, StringBuffer log) {
 
   List<num> currentProcess = delayProcess;
   num currentWork = 0;
-  Queue<List<num>> backlog = new Queue();
+  Queue<List<num>> backlog = Queue();
   while (true) {
     if (currentProcess[1] == 0) {
       resList.add(CpuProcessBar(totalTime - currentWork as int, totalTime as int, currentProcess[2] != -1 ? "P${currentProcess[2] + 1}" : "", currentProcess[2] != -1 ? colors[currentProcess[2] as int] : Colors.grey));
@@ -119,7 +117,9 @@ Widget SJF(List<List<num>> processes, StringBuffer log) {
     currentProcess[1]--;
     currentWork++;
     totalTime++;
-    backlog.forEach((element) => totalWait++);
+    for (var element in backlog) {
+      totalWait++;
+    }
     log.write("\n#######P${currentProcess[2] + 1} $currentProcess, currentWork: $currentWork, time: $totalTime, totalWait: $totalWait, count $count, backlog: $backlog");
   }
 
@@ -137,8 +137,8 @@ Widget RR(List<List<num>> processes, StringBuffer log, int n) {
 
   List<num> currentProcess = delayProcess;
   num currentWork = 0;
-  Queue<List<num>> backlog = new Queue();
-  Queue<List<num>> queue = new Queue();
+  Queue<List<num>> backlog = Queue();
+  Queue<List<num>> queue = Queue();
   while (true) {
     if (count <= processes.length - 1) {
       while (processes[count as int][0] <= totalTime) {
@@ -151,8 +151,9 @@ Widget RR(List<List<num>> processes, StringBuffer log, int n) {
     }
 
     if (currentProcess[1] == 0 || currentWork == n || (currentProcess[2] == -1 && (backlog.isNotEmpty || queue.isNotEmpty))) {
-      if (currentWork != 0)
+      if (currentWork != 0) {
         resList.add(CpuProcessBar(totalTime - currentWork as int, totalTime as int, currentProcess[2] != -1 ? "P${currentProcess[2] + 1}" : "", currentProcess[2] != -1 ? colors[currentProcess[2] as int] : Colors.grey));
+      }
       log.write("\nStopping P${currentProcess[2] + 1}, saving work ($currentWork) in bar");
       if (currentProcess[1] != 0 && currentProcess[2] != -1) {
         log.write("\n   Backlogged P${currentProcess[2] + 1}");
@@ -178,8 +179,12 @@ Widget RR(List<List<num>> processes, StringBuffer log, int n) {
     currentProcess[1]--;
     currentWork++;
     totalTime++;
-    backlog.forEach((element) => totalWait++);
-    queue.forEach((element) => totalWait++);
+    for (var element in backlog) {
+      totalWait++;
+    }
+    for (var element in queue) {
+      totalWait++;
+    }
     log.write("\n#######P${currentProcess[2] + 1} $currentProcess, currentWork: $currentWork, time: $totalTime, totalWait: $totalWait, count $count, backlog: $backlog");
   }
   log.write("\nFinished RR$n");
@@ -189,7 +194,7 @@ Widget RR(List<List<num>> processes, StringBuffer log, int n) {
 class CpuResult extends StatelessWidget {
   final double avgWait;
   final List<CpuProcessBar> list;
-  const CpuResult(this.avgWait, this.list);
+  const CpuResult(this.avgWait, this.list, {super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -222,7 +227,7 @@ class CpuProcessBar extends StatelessWidget {
   final String text;
   final Color color;
 
-  const CpuProcessBar(this.start, this.end, this.text, this.color);
+  const CpuProcessBar(this.start, this.end, this.text, this.color, {super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -244,7 +249,7 @@ class CpuProcessBar extends StatelessWidget {
               child: Center(
                 child: Text(
                   text,
-                  style: TextStyle(
+                  style: const TextStyle(
                     color: Colors.white,
                     fontFamily: 'Nutino',
                     fontWeight: FontWeight.bold,
@@ -258,7 +263,7 @@ class CpuProcessBar extends StatelessWidget {
               child: Center(
                 child: Text(
                   end.toString(),
-                  style: TextStyle(color: Colors.white,fontFamily: 'Nutino',),
+                  style: const TextStyle(color: Colors.white,fontFamily: 'Nutino',),
                 ),
               ),
             ),
@@ -268,7 +273,7 @@ class CpuProcessBar extends StatelessWidget {
               child: Center(
                 child: Text(
                   start == 0 ? '0' : '',
-                  style: TextStyle(color: Colors.white, fontFamily: 'Nutino',),
+                  style: const TextStyle(color: Colors.white, fontFamily: 'Nutino',),
                 ),
               ),
             ),

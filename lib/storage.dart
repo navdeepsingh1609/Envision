@@ -1,11 +1,6 @@
 import 'dart:math';
-
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
-
 import 'main.dart';
-
 enum StorageAlgo { Run }
 
 enum StorageOperationType { CREATE, ADD, DELETE }
@@ -35,7 +30,11 @@ Widget runStorageAlgo(StringBuffer log, List<StorageOperation> operations) {
       if (!drive.addFile(operation.fileName, operation.size)) {
         resultList.add(rowFromDrive(drive, step, true, true));
         log.writeln('\nStorage algo failed!');
-        return resultFromList(resultList);
+        return SingleChildScrollView(
+          child: Column(
+            children: [resultFromList(resultList)],
+          ),
+        );
       }
     }
     resultList.add(rowFromDrive(drive, step, false, false));
@@ -43,47 +42,52 @@ Widget runStorageAlgo(StringBuffer log, List<StorageOperation> operations) {
   resultList.add(rowFromDrive(drive, step, true, false));
   var frags = drive.fragmentedFiles();
   log.writeln('\nStorage algo completed successfully!');
-  return Column(
-    children: [
-      resultFromList(resultList),
-      Center(child: Text('Fragmented files: ${(frags[0] * 100).toStringAsFixed(2)}%',style: const TextStyle(fontFamily: 'Nutino',),)),
-      Center(child: Text('Fragmented area: ${(frags[1] * 100).toStringAsFixed(2)}%',style: const TextStyle(fontFamily: 'Nutino',),)),
-    ],
+  return SingleChildScrollView(
+    child: Column(
+      children: [
+        resultFromList(resultList),
+        Center(
+          child: Text(
+            'Fragmented files: ${(frags[0] * 100).toStringAsFixed(2)}%',
+            style: const TextStyle(fontFamily: 'Nutino'),
+          ),
+        ),
+        Center(
+          child: Text(
+            'Fragmented area: ${(frags[1] * 100).toStringAsFixed(2)}%',
+            style: const TextStyle(fontFamily: 'Nutino'),
+          ),
+        ),
+      ],
+    ),
   );
 }
 
 class HardDrive {
-  final List<String?> blocks = List.generate(DRIVE_SIZE, (index) => '');
+  final List<String?> blocks = List.generate(DRIVE_SIZE, (_) => null);
   final StringBuffer log;
 
   HardDrive(this.log);
 
   bool addFile(String? fileName, num size) {
     if (size > DRIVE_SIZE) {
-      log.writeln('Attempted to add file ($size) larger than the total drive size ($DRIVE_SIZE)!');
+      log.writeln('File size ($size) exceeds drive capacity ($DRIVE_SIZE)!');
       return false;
     }
-    log.writeln('Allocating $size blocks to $fileName');
-    num block = 0;
-    for (int i = 1; i <= size; i++) {
-      while (blocks[block as int] != '') {
-        log.write(blocks[block]);
-        block++;
-        if (block >= blocks.length) {
-          log.writeln('\nCould not allocate any more blocks (wrote $i/$size)!');
-          return false;
+    log.writeln('Allocating $size blocks for $fileName');
+    int allocated = 0;
+    for (int block = 0; block < blocks.length; block++) {
+      if (blocks[block] == null) {
+        blocks[block] = fileName;
+        allocated++;
+        if (allocated == size) {
+          log.writeln('$fileName allocated successfully.');
+          return true;
         }
       }
-      blocks[block] = fileName;
-      block++;
-      if (block >= blocks.length) {
-        log.writeln('\nCould not allocate any more blocks (wrote $i/$size)!');
-        return false;
-      }
-      log.write('[$fileName]');
     }
-    log.write('\n\n');
-    return true;
+    log.writeln('Failed to allocate $fileName, only allocated $allocated/$size blocks.');
+    return false;
   }
 
   void deleteFile(String? fileName) {
@@ -91,22 +95,27 @@ class HardDrive {
     for (int i = 0; i < blocks.length; i++) {
       if (blocks[i] == fileName) {
         log.write('($fileName)');
-        blocks[i] = '';
+        blocks[i] = null;
       } else {
-        log.write('${blocks[i] == '' ? ' ' : blocks[i]}');
+        log.write('${blocks[i] ?? ' '}');
       }
     }
     log.write('\n\n');
   }
 
   List<num> fragmentedFiles() {
+    if (blocks.every((block) => block == null)) {
+      return [0, 0];
+    }
+
     List<String?> files = [];
-    List<num> sizes = [];
+    List<int> sizes = [];
     List<bool> fragmented = [];
-    String? last = blocks[0];
+    String? last = null;
+
     for (int i = 0; i < blocks.length; i++) {
-      if (blocks[i] == '') {
-        last = blocks[i];
+      if (blocks[i] == null) {
+        last = null;
         continue;
       }
       int fileIndex = files.indexOf(blocks[i]);
@@ -118,30 +127,35 @@ class HardDrive {
         if (last != blocks[i]) {
           fragmented[fileIndex] = true;
         }
-        sizes[fileIndex] += 1;
+        sizes[fileIndex]++;
       }
       last = blocks[i];
     }
+
     int fragmentedCount = 0;
     int fragmentedSize = 0;
     for (int i = 0; i < files.length; i++) {
-      log.writeln('${files[i]} size: ${sizes[i]}${fragmented[i] ? ', fragmented' : ''}');
+      log.writeln(
+        '${files[i]} size: ${sizes[i]}${fragmented[i] ? ', fragmented' : ''}',
+      );
       if (fragmented[i]) {
         fragmentedCount++;
-        fragmentedSize += sizes[i] as int;
+        fragmentedSize += sizes[i];
       }
     }
-    var result = [fragmentedCount / files.length, fragmentedSize / sizes.reduce((value, element) => value + element)];
-    log.writeln('Fragmented files: ${(result[0] * 100).toStringAsFixed(2)}%');
-    log.writeln('Fragmented area compared to total used area: ${(result[1] * 100).toStringAsFixed(2)}%');
-    return [fragmentedCount / files.length, fragmentedSize / sizes.reduce((value, element) => value + element)];
+
+    int totalUsed = sizes.reduce((value, element) => value + element);
+    return [
+      fragmentedCount / files.length,
+      fragmentedSize / totalUsed,
+    ];
   }
 }
 
 class StorageOperation {
   String? fileName;
   StorageOperationType? operationType;
-  late num size;
+  late int size;
 
   StorageOperation(String input) {
     var split = input.split(',');
@@ -162,16 +176,21 @@ class StorageOperation {
 
 class StorageResult extends StatelessWidget {
   final List<TableRow> list;
-  const StorageResult(this.list);
+  const StorageResult(this.list, {super.key});
 
   @override
   Widget build(BuildContext context) {
-    return IntrinsicHeight(
+    return SingleChildScrollView(
+        scrollDirection: Axis.horizontal, // Horizontal scrolling restored
+        child:
+      IntrinsicHeight(
       child: Table(
-        children: list,
-        columnWidths: const {
-          0: FixedColumnWidth(50),
+        columnWidths: {
+          0: FixedColumnWidth(60), // Increased step column width
+          for (int i = 1; i <= DRIVE_SIZE; i++) i: FixedColumnWidth(50), // Uniform column width for all
         },
+        children: list,
+      ),
       ),
     );
   }
@@ -180,16 +199,16 @@ class StorageResult extends StatelessWidget {
 StorageResult resultFromList(List<TableRow> list) {
   List<TableCell> headerCellList = List.generate(
     DRIVE_SIZE,
-    (index) => TableCell(
+        (index) => TableCell(
       verticalAlignment: TableCellVerticalAlignment.bottom,
       child: Container(
         alignment: Alignment.bottomCenter,
         child: Center(
           child: Text(
-            (index + 1).toString(),
+            (index + 1).toString(), // Proper numbering
             maxLines: 1,
             overflow: TextOverflow.fade,
-            style: const TextStyle(fontFamily: 'Nutino',),
+            style: const TextStyle(fontFamily: 'Nutino'),
           ),
         ),
       ),
@@ -208,26 +227,27 @@ StorageResult resultFromList(List<TableRow> list) {
 TableRow rowFromDrive(HardDrive drive, int step, bool finalRow, bool failed) {
   Color? freeColor = Colors.blueGrey;
   if (finalRow) {
-    if (failed) {
-      freeColor = Colors.blue;
-    } else {
-      freeColor = Colors.green;
-    }
+    freeColor = failed ? Colors.blue : Colors.green;
   }
   List<TableCell> cellList = List.generate(
     DRIVE_SIZE,
-    (index) {
+        (index) {
       var color = freeColor;
-      if (!finalRow) {
-        if (drive.blocks[index] != '') {
-          color = color = Color((Random(drive.blocks[index].hashCode).nextDouble() * 0xFFFFFF).toInt()).withOpacity(0.7);
-        }
+      if (!finalRow && drive.blocks[index] != null) {
+        color = Color(
+          (Random(drive.blocks[index]!.hashCode).nextDouble() * 0xFFFFFF).toInt(),
+        ).withOpacity(0.7);
       }
       return TableCell(
         child: Container(
           color: color,
           alignment: Alignment.center,
-          child: Center(child: Text(finalRow ? "" : drive.blocks[index]!,style: const TextStyle(fontFamily: 'Nutino',),)),
+          child: Center(
+            child: Text(
+              finalRow ? "" : drive.blocks[index] ?? '',
+              style: const TextStyle(fontFamily: 'Nutino'),
+            ),
+          ),
         ),
       );
     },
@@ -241,15 +261,17 @@ TableRow rowFromDrive(HardDrive drive, int step, bool finalRow, bool failed) {
           child: Text(
             finalRow
                 ? failed
-                    ? 'Fail'
-                    : 'Done'
+                ? 'Fail'
+                : 'Done'
                 : 'Step $step',
-            style: const TextStyle(fontFamily: 'Nutino',),
+            style: const TextStyle(fontFamily: 'Nutino'),
           ),
         ),
       ),
     ),
   );
-  return TableRow(children: cellList, decoration: BoxDecoration(color: finalRow ? freeColor : Colors.transparent));
+  return TableRow(
+    children: cellList,
+    decoration: BoxDecoration(color: finalRow ? freeColor : Colors.transparent),
+  );
 }
-

@@ -8,7 +8,7 @@
 PRODUCT_NAME = envision
 
 // The application's bundle identifier
-PRODUCT_BUNDLE_IDENTIFIER = com.example.envision
+PRODUCT_BUNDLE_IDENTIFIER = com.envision.envision
 
 // The copyright displayed in application information
-PRODUCT_COPYRIGHT = Copyright © 2022 com.example. All rights reserved.
+PRODUCT_COPYRIGHT = Copyright © 2024 com.envision. All rights reserved.

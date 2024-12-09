@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 class ElevatedCard2 extends StatefulWidget {
-  ElevatedCard2({Key? key, required this.info_text}) : super(key: key);
+  ElevatedCard2({super.key, required this.info_text});
   String info_text;
 
   @override
@@ -14,7 +14,7 @@ class _ElevatedCard2State extends State<ElevatedCard2> {
 
     return Center(
       child: Padding(
-        padding: EdgeInsets.all(10),
+        padding: const EdgeInsets.all(10),
         child: Padding(
           padding: const EdgeInsets.all(8.0),
           child: Card(
@@ -28,12 +28,12 @@ class _ElevatedCard2State extends State<ElevatedCard2> {
             ),
             borderOnForeground: true,
             // color: Colors.deepPurpleAccent,
-            color: Color(0xffa29fd9),
+            color: const Color(0xffa29fd9),
             child: SizedBox(
               width: 500,
               child: Padding(
                 padding: const EdgeInsets.all(8.0),
-                child: Center(child: Text(textAlign: TextAlign.center,'${widget.info_text}',style: TextStyle(fontFamily: 'Nutino', fontWeight: FontWeight.w800,fontSize: 15,color: Colors.white,))),
+                child: Center(child: Text(textAlign: TextAlign.center,widget.info_text,style: const TextStyle(fontFamily: 'Nutino', fontWeight: FontWeight.w800,fontSize: 15,color: Colors.white,))),
               ),
             ),
 

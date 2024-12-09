@@ -1,7 +1,5 @@
 import 'dart:math';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
 import 'main.dart';
 
 enum MemoryAlgo { First_Fit, Next_Fit, Best_Fit, Worst_Fit }
@@ -22,7 +20,7 @@ Widget runMemoryAlgo(MemoryAlgo algo, StringBuffer log, List<List<num>> rawProce
   for (int i = 0; i < rawProcesses.length; i++) {
     processes.add(MemoryProcess(rawProcesses[i], MemoryProcess.generateName(i)));
   }
-  var memory = new Memory(log);
+  var memory = Memory(log);
   switch (algo) {
     case MemoryAlgo.First_Fit:
       return memoryFit(processes: processes, memory: memory, log: log);
@@ -93,7 +91,9 @@ class Memory {
   void addProcess(MemoryProcess process) {
     assert(process.regStart != null && process.regEnd != null);
     processes.add(process);
-    for (var i = process.regStart!; i <= process.regEnd!; i++) regs[i as int] = false;
+    for (var i = process.regStart!; i <= process.regEnd!; i++) {
+      regs[i as int] = false;
+    }
   }
 
   void tick() {
@@ -102,7 +102,9 @@ class Memory {
     for (var process in processes) {
       process.time--;
       if (process.time == 0) {
-        for (var i = process.regStart!; i <= process.regEnd!; i++) regs[i as int] = true;
+        for (var i = process.regStart!; i <= process.regEnd!; i++) {
+          regs[i as int] = true;
+        }
         removeList.add(process);
       }
     }
@@ -169,19 +171,23 @@ Widget memoryFit({required List<MemoryProcess> processes, required Memory memory
 
 class MemoryResult extends StatelessWidget {
   final List<TableRow> list;
-  const MemoryResult(this.list);
+  const MemoryResult(this.list, {super.key});
 
   @override
   Widget build(BuildContext context) {
-    return IntrinsicHeight(
-      child: Table(
-        children: list,
-        columnWidths: {
-          0: FixedColumnWidth(MEMORY_SIZE.toDouble()),
-          1: const IntrinsicColumnWidth(),
-        },
-      ),
-    );
+      return SingleChildScrollView(
+        scrollDirection: Axis.horizontal, // Add horizontal scroll
+        child: IntrinsicWidth(
+          child: Table(
+            children: list,
+            columnWidths: {
+              0: FixedColumnWidth(60), // Time column width
+              1: FixedColumnWidth(100), // Process column width
+              for (int i = 2; i < MEMORY_SIZE + 2; i++) i: FixedColumnWidth(30), // Uniform width for memory cells
+            },
+          ),
+        ),
+      );
   }
 }
 
@@ -197,7 +203,7 @@ MemoryResult resultFromList(List<TableRow> list) {
             index.toString(),
             maxLines: 1,
             overflow: TextOverflow.fade,
-            style: TextStyle(fontFamily: 'Nutino',),
+            style: const TextStyle(fontFamily: 'Nutino',),
           ),
         ),
       ),
@@ -210,13 +216,12 @@ MemoryResult resultFromList(List<TableRow> list) {
         verticalAlignment: TableCellVerticalAlignment.bottom,
         child: Container(
           alignment: Alignment.centerLeft,
-          child: Center(
+          child: const Center(
             child: Text(
               "Time",
-              style: TextStyle(fontWeight: FontWeight.bold,fontFamily: 'Nutino',),
+              style: TextStyle(fontWeight: FontWeight.bold, fontFamily: 'Nutino'),
               maxLines: 1,
-              overflow: TextOverflow.fade,
-
+              overflow: TextOverflow.ellipsis,
             ),
           ),
         ),
@@ -224,18 +229,19 @@ MemoryResult resultFromList(List<TableRow> list) {
       TableCell(
         child: Container(
           alignment: Alignment.center,
-          child: Center(
+          child: const Center(
             child: Text(
-              "Added\nprocess",
-              style: TextStyle(fontWeight: FontWeight.bold,fontFamily: 'Nutino',),
+              "Added Process",
+              style: TextStyle(fontWeight: FontWeight.bold, fontFamily: 'Nutino'),
               maxLines: 2,
-              overflow: TextOverflow.fade,
+              overflow: TextOverflow.ellipsis,
             ),
           ),
         ),
       ),
     ],
   );
+
   list.insert(0, TableRow(children: headerCellList));
   return MemoryResult(list);
 }
@@ -251,14 +257,17 @@ TableRow rowFromMemory(Memory memory, String addedProcess, bool finalRow, bool f
   }
   List<TableCell> cellList = List.generate(
     MEMORY_SIZE,
-    (index) => TableCell(
+        (index) => TableCell(
       child: Container(
+        width: 30, // Fixed width for consistency
+        height: 30,
         color: freeColor,
         alignment: Alignment.center,
-        child: Center(child: Text(finalRow ? "" : "-",style: TextStyle(fontFamily: 'Nutino',),)),
+        child: Center(child: Text(finalRow ? "" : "-", style: const TextStyle(fontFamily: 'Nutino'))),
       ),
     ),
   );
+
   if (!finalRow) {
     for (var process in memory.processes) {
       List<TableCell> processCellList = List.generate(
@@ -289,7 +298,7 @@ TableRow rowFromMemory(Memory memory, String addedProcess, bool finalRow, bool f
           alignment: Alignment.centerLeft,
           child: Center(
             child: Text(
-              !failed && finalRow ? '' : memory.time.toString(),style: TextStyle(fontFamily: 'Nutino',),
+              !failed && finalRow ? '' : memory.time.toString(),style: const TextStyle(fontFamily: 'Nutino',),
             ),
           ),
         ),

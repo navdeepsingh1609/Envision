@@ -2,12 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
 class HeadingCard extends StatelessWidget {
-   HeadingCard({Key? key, required this.sv, required this.Head}) : super(key: key);
+   HeadingCard({super.key, required this.sv, required this.Head});
    String sv;
    String Head;
    @override
   Widget build(BuildContext context) {
-    return Container(
+    return SizedBox(
       width: 500,
       child: Card(
         color: const Color(0xffa29fd9),
@@ -27,7 +27,7 @@ class HeadingCard extends StatelessWidget {
             allowDrawingOutsideViewBox: true,
           ),
             title: Text(
-              '$Head',
+              Head,
               textAlign: TextAlign.center,
               style: TextStyle(
                 color: Colors.teal.shade900,
