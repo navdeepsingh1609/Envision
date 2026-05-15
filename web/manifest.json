@@ -1,11 +1,11 @@
 {
-    "name": "envision",
-    "short_name": "envision",
+    "name": "Envision",
+    "short_name": "Envision",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "background_color": "#020617",
+    "theme_color": "#6366F1",
+    "description": "A high-fidelity OS algorithm simulator.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [
